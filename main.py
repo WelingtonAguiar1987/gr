@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+import pytz
 from datetime import timedelta
 import streamlit as st
 import time
@@ -12,11 +13,6 @@ try:
     from reportlab.lib import colors
 except ImportError as e:
     st.error("Biblioteca reportlab não está instalada. Instale-a com: `pip install reportlab`")
-    raise e
-try:
-    from streamlit_javascript import st_javascript
-except ImportError as e:
-    st.error("Biblioteca streamlit_javascript não está instalada. Instale-a com: `pip install streamlit-javascript`")
     raise e
 from io import BytesIO
 import os
@@ -33,31 +29,6 @@ st.set_page_config(page_title='GERENCIAMENTO DE RISCO', page_icon=':warning:', l
 # Inicializar session_state para armazenar resultados
 if 'resultados' not in st.session_state:
     st.session_state.resultados = None
-
-# Função para obter o horário local do navegador
-def get_client_datetime():
-    # Executa JavaScript para obter a data e hora local do navegador
-    js_code = """
-        new Date().toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-    """
-    try:
-        client_datetime = st_javascript(js_code)
-        # Verifica se o resultado é válido; caso contrário, usa o horário do servidor
-        if client_datetime and isinstance(client_datetime, str) and len(client_datetime) >= 19:
-            return client_datetime
-        else:
-            # Fallback para o horário do servidor se o JavaScript falhar
-            return datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-    except Exception:
-        return datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
 
 # DICIONÁRIO DOS ATIVOS FUTUROS OPERADOS:
 futuros = {
@@ -176,8 +147,10 @@ def generate_pdf(resultados):
         c.drawCentredString(width / 2, height - 50, "Relatório de Gerenciamento de Risco")
         c.setFont("Helvetica", 12)
         c.setFillColor(colors.black)
-        # Usar o horário local do navegador
-        c.drawCentredString(width / 2, height - 70, f"Data: {get_client_datetime()}")
+        # Usar o fuso horário de Nova York
+        ny_timezone = pytz.timezone('America/New_York')
+        ny_datetime = datetime.datetime.now(ny_timezone).strftime('%d/%m/%Y %H:%M:%S')
+        c.drawCentredString(width / 2, height - 70, f"Data: {ny_datetime}")
 
         # Dados para a tabela
         data = [
